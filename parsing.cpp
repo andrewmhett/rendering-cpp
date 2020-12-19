@@ -63,7 +63,43 @@ vector<Mesh*> parse_meshes(string f_path){
 
         }
         else if (line.substr(0,2)=="f ") {
-
+          string tuple;
+          int start_index=2;
+          vector<vector<int>> tuples;
+          int o=0;
+          while (true){
+            for (int i=start_index;i<line.length();i++){
+              if (line[i] != ' ' && i != line.length()-1){
+                tuple+=line[i];
+              }else{
+                start_index=i+1;
+                if (start_index==line.length()){
+                  tuple+=line[i];
+                }
+                break;
+              }
+            }
+            string slice;
+            vector<int> tuple_vec;
+            for (int i=0;i<tuple.length();i++){
+              if (tuple[i] != '/' && i != tuple.length()-1){
+                slice+=tuple[i];
+              }else{
+                if (i==tuple.length()-1){
+                  slice+=tuple[i];
+                }
+                tuple_vec.push_back(stoi(slice));
+                slice="";
+              }
+            }
+            tuples.push_back(tuple_vec);
+            o++;
+            if (start_index==line.length()){
+              break;
+            }
+            tuple="";
+          }
+          current_mesh.faces.push_back(tuples);
         }
       }
     }
