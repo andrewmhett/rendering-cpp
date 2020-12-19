@@ -1,6 +1,6 @@
 #include "parsing.cpp"
 
 int main(){
-  parse_objects("test.obj");
+  parse_meshes("test.obj");
   return 0;
 }
