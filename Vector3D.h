@@ -14,8 +14,11 @@ public:
     +(comp_vec.z*z);
   }
   double dist(Vector3 comp_vec){
-    return abs((pow(x,2)+pow(y,2)+pow(z,2))
-      -(pow(comp_vec.x,2)+pow(comp_vec.y,2)+pow(comp_vec.z,2)));
+    Vector3 delta_vector;
+    delta_vector.x=x-comp_vec.x;
+    delta_vector.y=y-comp_vec.y;
+    delta_vector.z=z-comp_vec.z;
+    return pow(pow(delta_vector.x,2)+pow(delta_vector.y,2)+pow(delta_vector.z,2),0.5);
   }
   Vector3 operator+(const Vector3& v) {
     Vector3 ret_vector;

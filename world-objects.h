@@ -12,7 +12,16 @@ class Face{
 public:
   vector<Vector3> vertices;
   Vector3 normal_vector;
-  double max_vertex_dist;
+  double max_vertex_dist = 0;
+  void calculate_maximum_distance(){
+    for (int i=0;i<vertices.size();i++){
+      for (int v=0;v<vertices.size();v++){
+        if (vertices[i].dist(vertices[v])>max_vertex_dist){
+          max_vertex_dist=vertices[i].dist(vertices[v]);
+        }
+      }
+    }
+  }
 };
 
 class Mesh{
@@ -31,6 +40,7 @@ public:
       for (int v=0;v<face_components[i].size();v++){
         face.vertices.push_back(vertices[face_components[i][v][0]-1-vertices_index_start]);
       }
+      face.calculate_maximum_distance();
       faces.push_back(face);
     }
   }
@@ -91,17 +101,24 @@ public:
         break;
       }
     }
+
   }
 };
 
 class LightSource{
 public:
   Vector3 position;
-  Vector3 radius;
+  double radius;
 };
 
 class Camera{
   Vector3 direction;
   Vector3 position;
   double focal_length;
+  int x_pixels=1440;
+  int y_pixels=2560;
+  double diagonal_size = .573;
+  void sample(){
+
+  }
 };
