@@ -2,64 +2,24 @@
 #include <iostream>
 #include <string>
 #include <math.h>
+#include "Vector3D.h"
 
 using namespace std;
 
 #define PI 3.14159265
 
-class Photon{
-public:
-  vector<double> direction;
-  vector<double> position;
-  double wavelength;
-  void travel(){
-    vector<double> new_position(3);
-    for (int i=0;i<3;i++){
-      new_position[i]=position[i]+direction[i];
-    }
-  }
-};
-
-class Emitter{
-public:
-  double angular_photon_density;
-  vector<int> photon_rgb;
-  vector<double> position;
-  void emit(vector<Photon> photons){
-    for (double degree_xz=0;degree_xz<360;degree_xz+=(1/angular_photon_density)){
-      for (double degree_y=0;degree_y<360;degree_y+=(1/angular_photon_density)){
-        Photon photon = Photon();
-        photon.position=position;
-        photon.rgb=photon_rgb;
-        photon.direction[0]=sin((PI*degree_xz)/180);
-        photon.direction[1]=sin((PI*degree_y)/180);
-        photon.direction[2]=cos((PI*degree_xz)/180);
-        photons.push_back(photon);
-      }
-    }
-  }
-};
-
-class Camera{
-  vector<double> direction;
-  vector<double> position;
-  double focal_length;
-};
-
 class Face{
 public:
-  vector<vector<double>> vertices;
-  vector<double> normal_vector;
-  void check_collision(Photon particle){
-    //check distance of photon from face
-  }
+  vector<Vector3> vertices;
+  Vector3 normal_vector;
+  double max_vertex_dist;
 };
 
 class Mesh{
 public:
   string name;
-  vector<vector<double>> vertices;
-  vector<vector<double>> normal_vectors;
+  vector<Vector3> vertices;
+  vector<Vector3> normal_vectors;
   vector<vector<vector<int>>> face_components;
   vector<Face> faces;
   int vertices_index_start;
@@ -74,4 +34,74 @@ public:
       faces.push_back(face);
     }
   }
+};
+
+class Photon{
+public:
+  Vector3 direction;
+  Vector3 origin;
+  int bounces = 0;
+  int max_bounces = 5;
+  void project(vector<Mesh> meshes){
+    bool bounced;
+    for (int i=0;i<meshes.size();i++){
+      for (int f=0;f<meshes[i].faces.size();f++){
+        if (meshes[i].faces[f].normal_vector.dot(direction)>0){
+          Vector3 n = meshes[i].faces[f].normal_vector;
+          Vector3 samp_vec = meshes[i].faces[f].vertices[0];
+          double c = -1*(n.x*origin.x)
+            +(n.x*samp_vec.x)
+            +(-1*(n.y*origin.y))
+            +(n.y*samp_vec.y)
+            +(-1*(n.z*origin.z))
+            +(n.z*samp_vec.z);
+          double t = c/(n.x*direction.x
+            +(n.y*direction.y)
+            +(n.z*direction.z));
+          double x = origin.x+direction.x*t;
+          double y = origin.y+direction.y*t;
+          double z = origin.z+direction.z*t;
+          Vector3 intersection_point;
+          intersection_point.x=x;
+          intersection_point.y=y;
+          intersection_point.z=z;
+          bool miss = false;
+          for (int v=0;v<meshes[i].faces[f].vertices.size();v++){
+            if (meshes[i].faces[f].vertices[v].dist(intersection_point) > meshes[i].faces[f].max_vertex_dist){
+              miss=true;
+              break;
+            }
+          }
+          if (!miss){
+            bounces++;
+            if (bounces<max_bounces){
+              Photon bounce_photon;
+              bounce_photon.origin=intersection_point;
+              bounce_photon.direction=direction-(n*2*(direction.dot(n)));
+              bounce_photon.max_bounces=bounces;
+              bounce_photon.bounces=bounces;
+              bounce_photon.project(meshes);
+            }
+            bounced=true;
+            break;
+          }
+        }
+      }
+      if (bounced){
+        break;
+      }
+    }
+  }
+};
+
+class LightSource{
+public:
+  Vector3 position;
+  Vector3 radius;
+};
+
+class Camera{
+  Vector3 direction;
+  Vector3 position;
+  double focal_length;
 };

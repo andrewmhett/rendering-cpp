@@ -33,7 +33,7 @@ vector<Mesh> parse_meshes(string f_path){
             num_vertices++;
             string coord;
             int start_index=2;
-            vector<double> vertex(3);
+            Vector3 vertex;
             for (int o=0;o<3;o++){
               for (int i=start_index;i<line.length();i++){
                 if (line[i] != ' '){
@@ -43,17 +43,23 @@ vector<Mesh> parse_meshes(string f_path){
                   break;
                 }
               }
-              vertex[o]=stod(coord);
+              switch (o){
+                case 0:
+                  vertex.x=stod(coord);
+                case 1:
+                  vertex.y=stod(coord);
+                case 2:
+                  vertex.z=stod(coord);
+              }
               coord="";
             }
             current_mesh.vertices.push_back(vertex);
           }
           else if (line.substr(0,2)=="vn") {
             num_norm_vectors++;
-            cout << num_norm_vectors << endl;
             string component;
             int start_index=3;
-            vector<double> vector(3);
+            Vector3 vector;
             for (int o=0;o<3;o++){
               for (int i=start_index;i<line.length();i++){
                 if (line[i] != ' '){
@@ -63,7 +69,14 @@ vector<Mesh> parse_meshes(string f_path){
                   break;
                 }
               }
-              vector[o]=stod(component);
+              switch (o){
+                case 0:
+                  vector.x=stod(component);
+                case 1:
+                  vector.y=stod(component);
+                case 2:
+                  vector.z=stod(component);
+              }
               component="";
             }
             current_mesh.normal_vectors.push_back(vector);
