@@ -13,6 +13,13 @@ public:
     +(comp_vec.y*y)
     +(comp_vec.z*z);
   }
+  Vector3 cross(Vector3 comp_vec){
+    Vector3 ret_vector;
+    ret_vector.x = y*comp_vec.z-z*comp_vec.y;
+    ret_vector.y = z*comp_vec.x-x*comp_vec.z;
+    ret_vector.z = x*comp_vec.y-y*comp_vec.x;
+    return ret_vector;
+  }
   double dist(Vector3 comp_vec){
     Vector3 delta_vector;
     delta_vector.x=x-comp_vec.x;

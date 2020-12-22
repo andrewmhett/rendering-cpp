@@ -8,6 +8,12 @@ using namespace std;
 
 #define PI 3.14159265
 
+class LightSource{
+public:
+  Vector3 position;
+  double radius=1.5;
+};
+
 class Face{
 public:
   vector<Vector3> vertices;
@@ -46,13 +52,13 @@ public:
   }
 };
 
-class Photon{
+class Ray{
 public:
   Vector3 direction;
   Vector3 origin;
   int bounces = 0;
   int max_bounces = 5;
-  void project(vector<Mesh> meshes){
+  double project(vector<Mesh> meshes, vector<LightSource> light_sources){
     bool bounced;
     for (int i=0;i<meshes.size();i++){
       for (int f=0;f<meshes[i].faces.size();f++){
@@ -85,12 +91,16 @@ public:
           if (!miss){
             bounces++;
             if (bounces<max_bounces){
-              Photon bounce_photon;
-              bounce_photon.origin=intersection_point;
-              bounce_photon.direction=direction-(n*2*(direction.dot(n)));
-              bounce_photon.max_bounces=bounces;
-              bounce_photon.bounces=bounces;
-              bounce_photon.project(meshes);
+              Ray bounce_ray;
+              bounce_ray.origin=intersection_point;
+              bounce_ray.direction=direction-(n*2*(direction.dot(n)));
+              //add random-ness to bounce vector for diffusion
+              bounce_ray.direction.x+=(rand()-RAND_MAX/2)/RAND_MAX;
+              bounce_ray.direction.y+=(rand()-RAND_MAX/2)/RAND_MAX;
+              bounce_ray.direction.z+=(rand()-RAND_MAX/2)/RAND_MAX;
+              bounce_ray.max_bounces=bounces;
+              bounce_ray.bounces=bounces;
+              bounce_ray.project(meshes,light_sources);
             }
             bounced=true;
             break;
@@ -101,24 +111,97 @@ public:
         break;
       }
     }
-
+    if (!bounced){
+      for (int i=0;i<light_sources.size();i++){
+        Vector3 n = direction*-1;
+        Vector3 samp_vec = light_sources[i].position;
+        double c = -1*(n.x*origin.x)
+          +(n.x*samp_vec.x)
+          +(-1*(n.y*origin.y))
+          +(n.y*samp_vec.y)
+          +(-1*(n.z*origin.z))
+          +(n.z*samp_vec.z);
+        double t = c/(n.x*direction.x
+          +(n.y*direction.y)
+          +(n.z*direction.z));
+        double x = origin.x+direction.x*t;
+        double y = origin.y+direction.y*t;
+        double z = origin.z+direction.z*t;
+        Vector3 intersection_point;
+        intersection_point.x=x;
+        intersection_point.y=y;
+        intersection_point.z=z;
+        if (light_sources[i].position.dist(intersection_point) < light_sources[i].radius){
+          double dist = light_sources[i].position.dist(intersection_point);
+          double scale = PI/light_sources[i].radius;
+          return 1+cos(scale*dist);
+        }
+      }
+    }
+    return 0;
   }
 };
 
-class LightSource{
+class Pixel{
 public:
   Vector3 position;
-  double radius;
+  int grayscale_value = 0;
+  double trace_ray(Vector3 direction,vector<Mesh> meshes, vector<LightSource> light_sources){
+      // trace a ray from this pixel in the direction specified and return a
+      // bool describing whether or not the the ray intersects a light source
+      Ray ray;
+      ray.origin = position;
+      ray.direction=direction;
+      return ray.project(meshes,light_sources);
+  }
 };
 
 class Camera{
+public:
   Vector3 direction;
   Vector3 position;
-  double focal_length;
-  int x_pixels=1440;
-  int y_pixels=2560;
-  double diagonal_size = .573;
-  void sample(){
-
+  double focal_length=2;
+  int x_pixels=2560;
+  int y_pixels=1440;
+  double diagonal_size = 1;
+  vector<vector<Pixel>> pixels;
+  void initialize_pixels(){
+    pixels.reserve(x_pixels);
+    for (int i=0;i<x_pixels;i++){
+      pixels[i].reserve(y_pixels);
+    }
+    double pixel_size = (diagonal_size*pow(pow(x_pixels,2)+pow(y_pixels,2),.5))
+          / (pow(x_pixels,2)+pow(y_pixels,2));
+    Vector3 global_vertical;
+    global_vertical.x=0;
+    global_vertical.y=0;
+    global_vertical.z=1;
+    Vector3 viewport_horizontal = global_vertical.cross(direction);
+    Vector3 viewport_vertical = direction.cross(viewport_horizontal);
+    for (int x=0;x<x_pixels;x++){
+      for (int y=0;y<y_pixels;y++){
+        Pixel pixel;
+        pixel.position = position+(direction*focal_length)
+          +(viewport_horizontal*x*pixel_size)
+          +(viewport_vertical*y*pixel_size);
+        pixels[x][y]=pixel;
+      }
+    }
+  }
+  void sample(vector<Mesh> meshes, vector<LightSource> light_sources){
+    for (int x=0;x<x_pixels;x++){
+      for (int y=0;y<y_pixels;y++){
+        for (int xy_rotation=-90;xy_rotation<90;xy_rotation++){
+          for (int z_rotation=-90;z_rotation<90;z_rotation++){
+            Vector3 ray_direction = direction;
+            ray_direction.x+=cos(xy_rotation*PI/180);
+            ray_direction.y+=sin(xy_rotation*PI/180);
+            ray_direction.z+=sin(z_rotation*PI/180);
+            pixels[x][y].grayscale_value
+              +=pixels[x][y].trace_ray(ray_direction,meshes,light_sources);
+          }
+        }
+      }
+    }
   }
 };
